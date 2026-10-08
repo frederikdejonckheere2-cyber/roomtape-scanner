@@ -1,0 +1,30 @@
+name: Build APK
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip the project
+        run: |
+          ZIP=$(ls *.zip | head -n 1)
+          echo "Unzipping $ZIP"
+          unzip -o "$ZIP"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build the app
+        working-directory: roomtape-android
+        run: gradle assembleDebug --no-daemon --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roomtape-scanner-apk
+          path: roomtape-android/app/build/outputs/apk/debug/app-debug.apk
