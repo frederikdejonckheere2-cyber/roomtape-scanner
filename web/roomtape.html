@@ -1,0 +1,1093 @@
+<title>Roomtape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a surveyor's notebook. Cool drafting paper, ink-blue lines, tape-measure yellow for every number you measured. One-column app with a fixed bottom tab bar. */
+:root{
+  --paper:#eef1f4; --surface:#ffffff; --ink:#17223a; --muted:#5a6578; --line:#d2d8e1;
+  --tape:#f2b705; --tape-ink:#2b2200; --blue:#2c56cf; --blue-soft:#e3e9fb;
+  --ok:#1f8a4c; --warn:#b4540a; --bad:#b42318;
+  --display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0e1421; --surface:#161f31; --ink:#e6ebf3; --muted:#97a2b6; --line:#2a3449;
+  --tape:#f2b705; --tape-ink:#2b2200; --blue:#86a2ff; --blue-soft:#1d2945;
+  --ok:#4cc47f; --warn:#f0a050; --bad:#ff7b6e; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#0e1421; --surface:#161f31; --ink:#e6ebf3; --muted:#97a2b6; --line:#2a3449;
+  --tape:#f2b705; --tape-ink:#2b2200; --blue:#86a2ff; --blue-soft:#1d2945;
+  --ok:#4cc47f; --warn:#f0a050; --bad:#ff7b6e; color-scheme:dark }
+html,body{background:var(--paper);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:0 calc(84px + env(safe-area-inset-bottom,0px))}
+*{box-sizing:border-box}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h2{font-size:1.45rem;font-weight:700}
+h3{font-size:1.08rem;font-weight:600}
+p{margin:0}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);display:flex;align-items:center;gap:12px;padding-block:12px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.brand{font-family:var(--display);font-weight:700;font-size:1.25rem;display:flex;align-items:center;gap:8px}
+.tape-mark{width:26px;height:14px;border-radius:3px;background:repeating-linear-gradient(90deg,var(--tape-ink) 0 1px,transparent 1px 5px) bottom/100% 5px no-repeat,var(--tape)}
+.homeinfo{font-size:.82rem;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.save{font-size:.75rem;color:var(--muted);font-family:var(--mono)}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tapeval{font-family:var(--mono);background:var(--tape);color:var(--tape-ink);padding:1px 6px;border-radius:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:420px){.grid3{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 11px;width:100%;min-width:0}
+textarea{min-height:76px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 14px;font-weight:500}
+button.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600}
+button.tape{background:var(--tape);color:var(--tape-ink);border-color:var(--tape);font-weight:600}
+button.ghost{background:transparent}
+button.link{border:none;background:none;color:var(--blue);padding:4px;text-decoration:underline}
+button:disabled{opacity:.5;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:7px 12px;border-radius:999px;font-size:.88rem}
+.chip[aria-pressed="true"]{background:var(--blue-soft);border-color:var(--blue);color:var(--ink)}
+.dirs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:330px}
+.dirs button{padding:12px 6px;font-size:.88rem}
+.dirs .center{display:flex;align-items:center;justify-content:center;font-size:.78rem;color:var(--muted);text-align:center;border:1px dashed var(--line);border-radius:8px;padding:6px}
+.banner{max-width:760px;margin:0 auto 16px;background:var(--blue-soft);border:1px solid var(--blue);border-radius:var(--r);padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+.banner p{flex:1;min-width:200px}
+.steps{display:flex;gap:6px}
+.steps span{height:4px;flex:1;border-radius:2px;background:var(--line)}
+.steps span.on{background:var(--tape)}
+.measure-canvas{width:100%;max-width:100%;border-radius:8px;border:1px solid var(--line);touch-action:manipulation;display:block;background:var(--paper)}
+.hint{font-size:.85rem;color:var(--muted);border-left:3px solid var(--tape);padding-left:10px}
+.floorhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.plan-box{width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px;background-color:var(--paper);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:20px 20px;background-position:-1px -1px}
+.plan-box svg{display:block;touch-action:none}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+td.r,th.r{text-align:right}
+.tbl{overflow-x:auto}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--blue-soft)}
+.three-wrap{position:relative;width:100%;height:min(62vh,560px);border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--surface);touch-action:none}
+.three-wrap canvas{display:block;width:100%;height:100%}
+.three-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:var(--muted)}
+.sel-card{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.sel-card .info{flex:1;min-width:180px}
+.swatch{width:14px;height:14px;border-radius:3px;display:inline-block;vertical-align:-2px;border:1px solid var(--line)}
+.status{font-size:.88rem;padding:10px 12px;border-radius:8px;background:var(--paper);border:1px solid var(--line)}
+.status.err{border-color:var(--bad);color:var(--bad)}
+.status.ok{border-color:var(--ok)}
+.budget-bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.budget-bar i{display:block;height:100%;background:var(--tape)}
+.pill{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:1px 6px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.pill.ok{border-color:var(--ok);color:var(--ok)}
+.shopgroup{display:flex;flex-direction:column;gap:6px}
+.item-line{display:flex;gap:10px;align-items:baseline;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.item-line .n{min-width:0;flex:1}
+.item-line a{color:var(--blue);font-size:.82rem}
+.radios{display:flex;flex-direction:column;gap:8px}
+.radios label{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.radios input{width:auto}
+.radios label:has(input:checked){border-color:var(--blue);background:var(--blue-soft)}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+.tabs button{border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.74rem;color:var(--muted);padding:6px 2px}
+.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+.tabs button[aria-current="true"]{color:var(--ink);font-weight:600}
+.tabs button[aria-current="true"] svg{stroke:var(--blue)}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(10,15,25,.45);display:flex;align-items:flex-end;justify-content:center;padding:16px}
+.overlay .panel{width:100%;max-width:520px;max-height:85vh;overflow:auto}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="top">
+  <div class="brand"><span class="tape-mark" aria-hidden="true"></span>Roomtape</div>
+  <div class="homeinfo" id="homeInfo"></div>
+  <span class="save" id="saveState"></span>
+</header>
+<div class="banner" id="exampleBanner" hidden>
+  <p>You are looking at an example home. Scan your own rooms when you are ready.</p>
+  <button class="primary" id="btnNewHome">Start my own home</button>
+</div>
+
+<main>
+  <section id="v-scan" class="wrap"></section>
+  <section id="v-plan" class="wrap" hidden></section>
+  <section id="v-3d" class="wrap" hidden>
+    <div class="floorhead">
+      <h2>3D view</h2>
+      <div class="chips" id="floorChips3d"></div>
+    </div>
+    <div class="three-wrap" id="threeWrap"><div class="three-msg" id="threeMsg">Loading 3D…</div></div>
+    <div class="row small muted">
+      <span>Drag a piece of furniture to move it. Drag empty space to turn the view, pinch or scroll to zoom.</span>
+      <button class="ghost" id="btnWalls">Walls: low</button>
+    </div>
+    <div class="panel" id="selPanel" hidden></div>
+    <div class="row"><button class="tape" id="btnGoFurnish">Add furniture</button></div>
+  </section>
+  <section id="v-furnish" class="wrap" hidden></section>
+</main>
+
+<nav class="tabs" aria-label="Sections">
+  <button data-view="scan"><svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><circle cx="12" cy="12" r="3.2"/></svg>Scan</button>
+  <button data-view="plan"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17"/><path d="M3.5 12h7v8.5M10.5 3.5V8M14 12h6.5"/></svg>Floor plans</button>
+  <button data-view="3d"><svg viewBox="0 0 24 24"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>3D</button>
+  <button data-view="furnish"><svg viewBox="0 0 24 24"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 15h18M5 10V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M5 18v2M19 18v2"/></svg>Furnish</button>
+</nav>
+<div class="overlay" id="overlay" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2, 9);
+const m2 = v => (Math.round(v * 100) / 100).toFixed(2);
+const eur = v => '€' + Math.round(v).toLocaleString('nl-BE');
+const ROOM_COLORS = ['#2c56cf','#1f8a4c','#b4540a','#8a3fb8','#0e8a8a','#c2366b','#6b7d1f','#4a6fa5'];
+const ROOM_NAMES = ['Living room','Kitchen','Bedroom','Bathroom','Hall','Toilet','Office','Dining room','Laundry','Garage','Attic','Kids room'];
+const TYPES = ['bed','sofa','chair','table','desk','wardrobe','cabinet','shelf','tv','lamp','rug','plant','other'];
+const FLOOR_H = 3.0;
+
+/* ---------- data ---------- */
+function exampleHome() {
+  const g = 'f0', u = 'f1';
+  const P = { example: true, name: 'Example house', country: 'Belgium',
+    floors: [{ id: g, name: 'Ground floor', level: 0 }, { id: u, name: 'First floor', level: 1 }],
+    rooms: [
+      { id: 'r1', name: 'Living room', floorId: g, w: 5.2, d: 4.1, h: 2.6, x: 0, z: 0, color: ROOM_COLORS[0] },
+      { id: 'r2', name: 'Kitchen', floorId: g, w: 3.4, d: 4.1, h: 2.6, x: 5.2, z: 0, color: ROOM_COLORS[1] },
+      { id: 'r3', name: 'Hall', floorId: g, w: 2.2, d: 3.0, h: 2.6, x: 0, z: 4.1, color: ROOM_COLORS[2] },
+      { id: 'r4', name: 'Bedroom', floorId: u, w: 4.0, d: 3.6, h: 2.5, x: 0, z: 0, color: ROOM_COLORS[3] },
+      { id: 'r5', name: 'Bathroom', floorId: u, w: 2.6, d: 2.2, h: 2.5, x: 4.0, z: 0, color: ROOM_COLORS[4] },
+    ],
+    items: [
+      { id: 'i1', roomId: 'r1', name: 'Three-seat sofa (example)', shop: 'Example shop', price: 699, w: 2.2, d: 0.9, h: 0.85, type: 'sofa', color: '#5a6b7e', x: 2.6, z: 3.4, rot: 0 },
+      { id: 'i2', roomId: 'r1', name: 'Coffee table (example)', shop: 'Example shop', price: 129, w: 1.1, d: 0.6, h: 0.42, type: 'table', color: '#a77b4f', x: 2.6, z: 2.2, rot: 0 },
+      { id: 'i3', roomId: 'r4', name: 'Double bed 160×200 (example)', shop: 'Example shop', price: 349, w: 1.68, d: 2.1, h: 0.95, type: 'bed', color: '#d8cfc2', x: 2.0, z: 1.15, rot: 0 },
+    ] };
+  return P;
+}
+function emptyHome() {
+  return { example: false, name: 'My home', country: 'Belgium', floors: [{ id: uid(), name: 'Ground floor', level: 0 }], rooms: [], items: [] };
+}
+let P = null;
+try { const s = localStorage.getItem('roomtape.home'); if (s) P = JSON.parse(s); } catch (e) {}
+if (!P || !P.floors) P = exampleHome();
+
+/* ---------- persistence ---------- */
+let docRef = null, saveTimer = null;
+function setSave(t) { $('#saveState').textContent = t; }
+function save() {
+  try { localStorage.setItem('roomtape.home', JSON.stringify(P)); } catch (e) {}
+  if (!docRef) { setSave('saved on this device'); return; }
+  setSave('saving…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try { await docRef.set({ json: JSON.stringify(P), updated: Date.now() }); setSave('saved'); }
+    catch (e) { setSave('saved on this device only'); }
+  }, 700);
+}
+(async () => {
+  try {
+    if (!window.claude || !window.claude.use) return;
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!db || !user) return;
+    const id = await user.id();
+    docRef = db.collection('data/users/' + id).doc('home');
+    const snap = await docRef.get();
+    if (snap.exists) {
+      const d = snap.data();
+      const loaded = d && d.json ? JSON.parse(d.json) : null;
+      if (loaded && loaded.floors) { P = loaded; renderAll(); }
+    }
+    setSave('synced');
+  } catch (e) { docRef = null; }
+})();
+
+let sampleFn = null;
+(async () => {
+  try { if (window.claude && window.claude.use) sampleFn = await window.claude.use('sample'); } catch (e) {}
+  if (view === 'furnish') renderFurnish();
+})();
+
+/* ---------- helpers ---------- */
+const floorOf = id => P.floors.find(f => f.id === id);
+const roomOf = id => P.rooms.find(r => r.id === id);
+const floorsSorted = () => [...P.floors].sort((a, b) => b.level - a.level);
+const roomsOn = fid => P.rooms.filter(r => r.floorId === fid);
+const polyArea = pts => Math.abs(pts.reduce((s, p, i) => { const q = pts[(i + 1) % pts.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
+const area = r => r.poly && r.poly.length > 2 ? polyArea(r.poly) : r.w * r.d;
+function floorName(level) {
+  if (level === 0) return 'Ground floor';
+  if (level < 0) return level === -1 ? 'Basement' : 'Basement ' + (-level);
+  return ['First', 'Second', 'Third', 'Fourth', 'Fifth'][level - 1] ? ['First', 'Second', 'Third', 'Fourth', 'Fifth'][level - 1] + ' floor' : 'Floor ' + level;
+}
+function renderHeader() {
+  const n = P.rooms.length, a = P.rooms.reduce((s, r) => s + area(r), 0);
+  $('#homeInfo').textContent = `${P.name} · ${P.floors.length} floor${P.floors.length > 1 ? 's' : ''} · ${n} room${n !== 1 ? 's' : ''} · ${a.toFixed(1)} m²`;
+  $('#exampleBanner').hidden = !P.example;
+}
+let newHomeArmed = false;
+$('#btnNewHome').addEventListener('click', e => {
+  if (!newHomeArmed) { newHomeArmed = true; e.target.textContent = 'Tap again to clear the example'; return; }
+  P = emptyHome(); newHomeArmed = false; e.target.textContent = 'Start my own home';
+  wiz = null; save(); setView('scan'); renderAll();
+});
+
+/* ---------- navigation ---------- */
+let view = 'scan';
+function setView(v) {
+  view = v;
+  for (const id of ['scan', 'plan', '3d', 'furnish']) $('#v-' + id).hidden = id !== v;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.view === v ? 'true' : 'false'));
+  if (v === 'scan') renderScan();
+  if (v === 'plan') renderPlan();
+  if (v === '3d') open3D(); else stop3D();
+  if (v === 'furnish') renderFurnish();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+function renderAll() { renderHeader(); setView(view); }
+
+/* ================= SCAN WIZARD ================= */
+let wiz = null; // {step, room, measure}
+function startWizard() {
+  if (P.example) { P = emptyHome(); renderHeader(); }
+  const lastRoom = P.rooms[P.rooms.length - 1];
+  wiz = { step: 0, room: { id: uid(), name: '', floorId: lastRoom ? lastRoom.floorId : P.floors[0].id, w: '', d: '', h: 2.5, color: ROOM_COLORS[P.rooms.length % ROOM_COLORS.length] }, measure: null, pos: null };
+}
+function renderScan() {
+  const el = $('#v-scan');
+  if (!wiz) {
+    el.innerHTML = `
+      <div><p class="label">Measure your home</p><h2>Scan one room at a time</h2></div>
+      <div class="panel">
+        <p>For each room you take a photo of each wall with something of a known size against it, like an A4 sheet or a door. Tap both ends of that object and both ends of the wall, and Roomtape works out the length. You can also type a size if you already know it.</p>
+        <p class="hint">After every room the app asks if there is another room to scan. Then you say where the new room sits: left, right, in front of or behind a room you already have, or on another floor.</p>
+        <div class="row"><button class="tape" id="btnStart">${P.rooms.length ? 'Scan another room' : 'Scan my first room'}</button>
+        ${P.rooms.length ? '<button id="btnSeePlan">See my floor plans</button>' : ''}</div>
+      </div>
+      <div class="panel">
+        <h3>Import a scan from the Android app</h3>
+        <p class="small muted">Scanned your home with Roomtape Scanner on your phone? Pick the scan file you saved, or paste the scan you copied. Rooms keep their real shape and their position from the walk.</p>
+        <div class="row"><button class="primary" id="btnImportFile">Choose scan file</button><input type="file" id="importFile" accept=".json,application/json,text/plain" hidden></div>
+        <label class="f"><span class="label">Or paste the scan here</span><textarea id="importText" placeholder='{"format":"roomtape-scan", …}'></textarea></label>
+        <div class="row"><button id="btnImportText">Import pasted scan</button></div>
+        <div class="status err" id="importErr" hidden></div>
+      </div>
+      ${P.rooms.length ? `<div class="panel"><h3>Rooms so far</h3>${floorsSorted().map(f => roomsOn(f.id).length ? `<div><p class="label">${esc(f.name)}</p>${roomsOn(f.id).map(r => `<div class="item-line"><span class="n">${esc(r.name)}</span><span class="num small">${m2(r.w)} × ${m2(r.d)} m · ${area(r).toFixed(1)} m²</span></div>`).join('')}</div>` : '').join('')}</div>` : ''}`;
+    $('#btnStart').onclick = () => { startWizard(); renderScan(); };
+    $('#btnImportFile').onclick = () => $('#importFile').click();
+    $('#importFile').onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => runImport(String(rd.result)); rd.readAsText(f); };
+    $('#btnImportText').onclick = () => runImport($('#importText').value);
+    if ($('#btnSeePlan')) $('#btnSeePlan').onclick = () => setView('plan');
+    return;
+  }
+  const R = wiz.room;
+  const stepsBar = `<div class="steps">${[0, 1, 2, 3].map(i => `<span class="${i <= wiz.step ? 'on' : ''}"></span>`).join('')}</div>`;
+  if (wiz.measure) return renderMeasure(el);
+
+  if (wiz.step === 0) {
+    el.innerHTML = `${stepsBar}
+      <div><p class="label">Step 1 of 4</p><h2>Which room is this?</h2></div>
+      <div class="panel">
+        <label class="f"><span class="label">Room name</span><input id="rName" value="${esc(R.name)}" placeholder="e.g. Living room"></label>
+        <div class="chips">${ROOM_NAMES.map(n => `<button class="chip" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+        <label class="f"><span class="label">Floor</span>
+          <select id="rFloor">${floorsSorted().map(f => `<option value="${f.id}" ${f.id === R.floorId ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}</select></label>
+        <div class="row small"><span class="muted">Room on a floor not listed?</span><button id="addUp">Add floor above</button><button id="addDown">Add basement</button></div>
+        <div class="row"><button class="ghost" id="cancel">Cancel</button><button class="tape" id="next">Next: measure</button></div>
+      </div>`;
+    el.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { $('#rName').value = b.dataset.n; });
+    const addFloor = dir => {
+      const lv = dir > 0 ? Math.max(...P.floors.map(f => f.level)) + 1 : Math.min(...P.floors.map(f => f.level)) - 1;
+      const f = { id: uid(), name: floorName(lv), level: lv }; P.floors.push(f); R.floorId = f.id; R.name = $('#rName').value; save(); renderScan(); renderHeader();
+    };
+    $('#addUp').onclick = () => addFloor(1); $('#addDown').onclick = () => addFloor(-1);
+    $('#cancel').onclick = () => { wiz = null; renderScan(); };
+    $('#next').onclick = () => { R.name = $('#rName').value.trim() || 'Room ' + (P.rooms.length + 1); R.floorId = $('#rFloor').value; wiz.step = 1; renderScan(); };
+    return;
+  }
+  if (wiz.step === 1) {
+    const fld = (k, lab, help) => `<div class="panel" style="gap:10px">
+        <div class="floorhead"><h3>${lab}</h3>${R[k] ? `<span class="tapeval">${m2(+R[k])} m</span>` : ''}</div>
+        <p class="small muted">${help}</p>
+        <div class="row"><button class="tape" data-m="${k}">Measure with camera</button>
+        <label class="f" style="flex:1;min-width:130px"><span class="label">or type it (m)</span><input id="in_${k}" inputmode="decimal" value="${R[k]}" placeholder="0.00"></label></div>
+      </div>`;
+    el.innerHTML = `${stepsBar}
+      <div><p class="label">Step 2 of 4 · ${esc(R.name)}</p><h2>Measure the room</h2></div>
+      ${fld('w', 'Width', 'Wall from left to right as you stand in the doorway.')}
+      ${fld('d', 'Length', 'Wall from the door to the back of the room.')}
+      ${fld('h', 'Ceiling height', 'Floor to ceiling. 2.50 m is common if you skip this.')}
+      <div class="row"><button class="ghost" id="back">Back</button><button class="tape" id="next">Next: position</button></div>
+      <div class="status err" id="err" hidden></div>`;
+    const sync = () => { for (const k of ['w', 'd', 'h']) R[k] = $('#in_' + k).value.replace(',', '.'); };
+    el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { sync(); wiz.measure = { target: b.dataset.m, img: null, pts: [], ref: 'a4l', custom: '' }; renderScan(); });
+    $('#back').onclick = () => { sync(); wiz.step = 0; renderScan(); };
+    $('#next').onclick = () => {
+      sync();
+      const w = parseFloat(R.w), d = parseFloat(R.d), h = parseFloat(R.h) || 2.5;
+      if (!(w > 0.3 && w < 60 && d > 0.3 && d < 60)) { $('#err').hidden = false; $('#err').textContent = 'Width and length must be between 0.3 m and 60 m. Measure them or type them in.'; return; }
+      R.w = w; R.d = d; R.h = h;
+      const others = roomsOn(R.floorId), otherFloors = P.rooms.filter(r => r.floorId !== R.floorId);
+      if (!others.length && !otherFloors.length) { R.x = 0; R.z = 0; finishRoom(); return; }
+      wiz.step = 2; renderScan();
+    };
+    return;
+  }
+  if (wiz.step === 2) {
+    const others = roomsOn(R.floorId);
+    const fl = floorOf(R.floorId);
+    if (others.length) {
+      const refId = wiz.ref || others[others.length - 1].id;
+      el.innerHTML = `${stepsBar}
+        <div><p class="label">Step 3 of 4 · ${esc(R.name)}</p><h2>Where is this room?</h2></div>
+        <div class="panel">
+          <p class="small muted">Stand in the doorway of a room you already scanned and look in. Where is ${esc(R.name)} from there?</p>
+          <label class="f"><span class="label">Next to</span><select id="refRoom">${others.map(r => `<option value="${r.id}" ${r.id === refId ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select></label>
+          <div class="dirs">
+            <span></span><button data-dir="behind">Behind</button><span></span>
+            <button data-dir="left">Left</button><div class="center" id="refName"></div><button data-dir="right">Right</button>
+            <span></span><button data-dir="front">In front</button><span></span>
+          </div>
+          <p class="hint">Phone GPS is only accurate to a few metres indoors, which is wider than most walls, so Roomtape asks you instead. You can drag rooms into their exact spot on the floor plan afterwards.</p>
+          <div class="row"><button class="ghost" id="back">Back</button></div>
+        </div>`;
+      const upd = () => { $('#refName').textContent = roomOf($('#refRoom').value).name; };
+      $('#refRoom').onchange = () => { wiz.ref = $('#refRoom').value; upd(); }; upd();
+      el.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => { placeRelative(R, roomOf($('#refRoom').value), b.dataset.dir); finishRoom(); });
+      $('#back').onclick = () => { wiz.step = 1; renderScan(); };
+    } else {
+      const otherRooms = P.rooms.filter(r => r.floorId !== R.floorId);
+      el.innerHTML = `${stepsBar}
+        <div><p class="label">Step 3 of 4 · ${esc(R.name)}</p><h2>First room on ${esc(fl.name)}</h2></div>
+        <div class="panel">
+          <p class="small muted">Which room is directly above or below it? Roomtape lines the floors up from there.</p>
+          <label class="f"><span class="label">Lines up with</span><select id="stackRef">${otherRooms.map(r => `<option value="${r.id}">${esc(r.name)} (${esc(floorOf(r.floorId).name)})</option>`).join('')}<option value="">None, start at the corner</option></select></label>
+          <div class="row"><button class="ghost" id="back">Back</button><button class="tape" id="ok">Place room</button></div>
+        </div>`;
+      $('#back').onclick = () => { wiz.step = 1; renderScan(); };
+      $('#ok').onclick = () => { const ref = roomOf($('#stackRef').value); R.x = ref ? ref.x : 0; R.z = ref ? ref.z : 0; finishRoom(); };
+    }
+    return;
+  }
+  if (wiz.step === 3) {
+    el.innerHTML = `${stepsBar}
+      <div><p class="label">Step 4 of 4</p><h2>${esc(R.name)} is saved</h2></div>
+      <div class="panel">
+        <p><span class="tapeval">${m2(R.w)} × ${m2(R.d)} m</span> · ceiling ${m2(R.h)} m · ${area(R).toFixed(1)} m² on ${esc(floorOf(R.floorId).name)}</p>
+        <h3>Is there another room to scan?</h3>
+        <div class="row"><button class="tape" id="yes">Yes, scan another room</button><button class="primary" id="no">No, show all my rooms</button></div>
+      </div>`;
+    $('#yes').onclick = () => { startWizard(); renderScan(); };
+    $('#no').onclick = () => { wiz = null; setView('plan'); };
+  }
+}
+function placeRelative(R, ref, dir) {
+  if (dir === 'right') { R.x = ref.x + ref.w; R.z = ref.z; }
+  if (dir === 'left') { R.x = ref.x - R.w; R.z = ref.z; }
+  if (dir === 'behind') { R.x = ref.x; R.z = ref.z - R.d; }
+  if (dir === 'front') { R.x = ref.x; R.z = ref.z + ref.d; }
+}
+function finishRoom() {
+  P.rooms.push(wiz.room); wiz.step = 3; save(); renderHeader(); renderScan();
+}
+
+/* ---------- photo measuring ---------- */
+const REFS = { a4l: ['A4 sheet, long side', 29.7], a4s: ['A4 sheet, short side', 21.0], card: ['Bank card, long side', 8.56], door: ['Interior door, height', 201.5], doorw: ['Interior door, width', 83], tile: ['Floor tile (enter size)', 0], custom: ['Something else (enter size)', 0] };
+function renderMeasure(el) {
+  const M = wiz.measure, R = wiz.room;
+  const tLabel = { w: 'width', d: 'length', h: 'ceiling height' }[M.target];
+  const refLen = REFS[M.ref][1] || parseFloat(String(M.custom).replace(',', '.')) || 0;
+  const n = M.pts.length;
+  const instr = !M.img ? 'Take a photo of the wall, straight on, with the reference object flat against it.'
+    : n < 2 ? `Tap ${n ? 'the other end' : 'one end'} of the reference object.`
+    : n < 4 ? `Tap ${n === 2 ? 'one end' : 'the other end'} of the wall (${tLabel}).` : 'Done. Check the result below.';
+  let result = null;
+  if (n === 4 && refLen > 0) { const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y); result = refLen * d(M.pts[2], M.pts[3]) / d(M.pts[0], M.pts[1]) / 100; }
+  el.innerHTML = `
+    <div><p class="label">${esc(R.name)} · measuring ${tLabel}</p><h2>${esc(instr)}</h2></div>
+    <div class="panel">
+      <label class="f"><span class="label">Reference object in the photo</span>
+        <select id="refSel">${Object.entries(REFS).map(([k, v]) => `<option value="${k}" ${k === M.ref ? 'selected' : ''}>${v[0]}${v[1] ? ' · ' + v[1] + ' cm' : ''}</option>`).join('')}</select></label>
+      ${!REFS[M.ref][1] ? `<label class="f"><span class="label">Its real length in cm</span><input id="customLen" inputmode="decimal" value="${esc(M.custom)}" placeholder="e.g. 60"></label>` : ''}
+      <div class="row"><button class="tape" id="btnPhoto">${M.img ? 'Retake photo' : 'Open camera'}</button>
+      <input type="file" id="photoIn" accept="image/*" capture="environment" hidden></div>
+      ${M.img ? `<canvas id="mc" class="measure-canvas"></canvas>
+        <div class="row small"><span class="swatch" style="background:var(--blue)"></span>reference <span class="swatch" style="background:var(--tape)"></span>wall
+        <button class="link" id="undoPt">Undo last tap</button><button class="link" id="resetPt">Start over</button></div>` : ''}
+      ${result ? `<div class="status ok">Measured ${tLabel}: <span class="tapeval">${m2(result)} m</span></div>` : ''}
+      <p class="hint">For a good result: stand back so the whole wall fits, hold the phone level and square to the wall, and keep the reference at roughly the same distance as the wall. Expect a few centimetres of error. A laser meter is still more exact.</p>
+      <div class="row"><button class="ghost" id="mBack">Cancel</button>${result ? `<button class="primary" id="useIt">Use ${m2(result)} m</button>` : ''}</div>
+    </div>`;
+  $('#refSel').onchange = e => { M.ref = e.target.value; renderScan(); };
+  if ($('#customLen')) $('#customLen').onchange = e => { M.custom = e.target.value; renderScan(); };
+  $('#btnPhoto').onclick = () => $('#photoIn').click();
+  $('#photoIn').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const img = new Image(); img.onload = () => { M.img = img; M.pts = []; renderScan(); };
+    img.src = URL.createObjectURL(f);
+  };
+  $('#mBack').onclick = () => { wiz.measure = null; renderScan(); };
+  if ($('#useIt')) $('#useIt').onclick = () => { R[M.target] = +result.toFixed(2); wiz.measure = null; renderScan(); };
+  if ($('#undoPt')) $('#undoPt').onclick = () => { M.pts.pop(); renderScan(); };
+  if ($('#resetPt')) $('#resetPt').onclick = () => { M.pts = []; renderScan(); };
+  if (M.img) drawMeasure();
+}
+function drawMeasure() {
+  const M = wiz.measure, c = $('#mc'), img = M.img;
+  const sc = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+  c.width = Math.round(img.naturalWidth * sc); c.height = Math.round(img.naturalHeight * sc);
+  const x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height);
+  const cs = getComputedStyle(document.documentElement);
+  const blue = cs.getPropertyValue('--blue').trim() || '#2c56cf', tape = cs.getPropertyValue('--tape').trim() || '#f2b705';
+  const lw = Math.max(3, c.width / 250);
+  M.pts.forEach((p, i) => {
+    const col = i < 2 ? blue : tape;
+    x.fillStyle = col; x.strokeStyle = '#000'; x.lineWidth = lw / 2;
+    x.beginPath(); x.arc(p.x, p.y, lw * 2.2, 0, Math.PI * 2); x.fill(); x.stroke();
+    if (i % 2 === 1) { const a = M.pts[i - 1]; x.strokeStyle = col; x.lineWidth = lw; x.beginPath(); x.moveTo(a.x, a.y); x.lineTo(p.x, p.y); x.stroke(); }
+  });
+  c.onclick = e => {
+    if (M.pts.length >= 4) return;
+    const r = c.getBoundingClientRect();
+    M.pts.push({ x: (e.clientX - r.left) * c.width / r.width, y: (e.clientY - r.top) * c.height / r.height });
+    renderScan();
+  };
+}
+
+/* ================= FLOOR PLANS ================= */
+function renderPlan() {
+  const el = $('#v-plan');
+  if (!P.rooms.length) {
+    el.innerHTML = `<div><p class="label">Overview</p><h2>No rooms yet</h2></div><div class="panel"><p>Scan your first room and it shows up here, floor by floor, with all its measurements.</p><div class="row"><button class="tape" id="go">Scan a room</button></div></div>`;
+    $('#go').onclick = () => { startWizard(); setView('scan'); }; return;
+  }
+  const total = P.rooms.reduce((s, r) => s + area(r), 0);
+  el.innerHTML = `<div class="floorhead"><div><p class="label">Overview · floor by floor</p><h2>${esc(P.name)}</h2></div>
+      <span class="tapeval">${total.toFixed(1)} m² total</span></div>
+    <label class="f" style="max-width:320px"><span class="label">Name of this home</span><input id="homeName" value="${esc(P.name)}"></label>
+    <p class="small muted">Drag a room to fine-tune where it sits. Tap a room in the list to change its size, name or floor.</p>
+    ${floorsSorted().map(f => {
+      const rs = roomsOn(f.id); const a = rs.reduce((s, r) => s + area(r), 0);
+      return `<div class="panel">
+        <div class="floorhead"><h3>${esc(f.name)}</h3><span class="num small muted">${rs.length} room${rs.length !== 1 ? 's' : ''} · ${a.toFixed(1)} m²</span></div>
+        ${rs.length ? `<div class="plan-box" data-floor="${f.id}"></div>
+        <div class="tbl"><table><thead><tr><th>Room</th><th class="r">Width</th><th class="r">Length</th><th class="r">Height</th><th class="r">Area</th></tr></thead><tbody>
+        ${rs.map(r => `<tr class="click" data-room="${r.id}"><td><span class="swatch" style="background:${r.color}"></span> ${esc(r.name)}</td><td class="r num">${m2(r.w)} m</td><td class="r num">${m2(r.d)} m</td><td class="r num">${m2(r.h)} m</td><td class="r num">${area(r).toFixed(1)} m²</td></tr>`).join('')}
+        </tbody></table></div>` : `<p class="small muted">No rooms on this floor yet.</p>`}
+      </div>`;
+    }).join('')}
+    <div class="row"><button class="tape" id="addRoom">Scan another room</button><button id="see3d">View in 3D</button></div>`;
+  $('#homeName').onchange = e => { P.name = e.target.value.trim() || 'My home'; save(); renderHeader(); };
+  $('#addRoom').onclick = () => { startWizard(); setView('scan'); };
+  $('#see3d').onclick = () => setView('3d');
+  el.querySelectorAll('[data-room]').forEach(tr => tr.onclick = () => editRoom(tr.dataset.room));
+  el.querySelectorAll('.plan-box').forEach(drawPlan);
+}
+function drawPlan(box) {
+  const fid = box.dataset.floor, rs = roomsOn(fid);
+  const minX = Math.min(...rs.map(r => r.x)), minZ = Math.min(...rs.map(r => r.z));
+  const maxX = Math.max(...rs.map(r => r.x + r.w)), maxZ = Math.max(...rs.map(r => r.z + r.d));
+  const cw = Math.max(300, box.clientWidth || 340), pad = 28;
+  const s = Math.min((cw - pad * 2) / Math.max(1, maxX - minX), 90);
+  const W = (maxX - minX) * s + pad * 2, H = (maxZ - minZ) * s + pad * 2;
+  const X = v => pad + (v - minX) * s, Z = v => pad + (v - minZ) * s;
+  let svg = `<svg width="${Math.max(W, cw - 2)}" height="${H}" viewBox="0 0 ${Math.max(W, cw - 2)} ${H}" font-family="IBM Plex Mono, monospace">`;
+  for (const r of rs) {
+    const x = X(r.x), y = Z(r.z), w = r.w * s, h = r.d * s;
+    svg += `<g data-drag="${r.id}" style="cursor:grab">
+      ${r.poly && r.poly.length > 2
+        ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="transparent"/><polygon points="${r.poly.map(p => `${x + p[0] * s},${y + p[1] * s}`).join(' ')}" fill="${r.color}" fill-opacity=".16" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>`
+        : `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${r.color}" fill-opacity=".16" stroke="var(--ink)" stroke-width="2.5"/>`}`;
+    // dimension ticks inside top and left edge
+    if (w > 46) svg += `<line x1="${x + 6}" y1="${y + 9}" x2="${x + w - 6}" y2="${y + 9}" stroke="var(--muted)" stroke-width="1"/><line x1="${x + 6}" y1="${y + 5}" x2="${x + 6}" y2="${y + 13}" stroke="var(--muted)"/><line x1="${x + w - 6}" y1="${y + 5}" x2="${x + w - 6}" y2="${y + 13}" stroke="var(--muted)"/>
+      <rect x="${x + w / 2 - 19}" y="${y + 3}" width="38" height="12" fill="var(--paper)"/><text x="${x + w / 2}" y="${y + 12.5}" font-size="10" text-anchor="middle" fill="var(--ink)">${m2(r.w)}</text>`;
+    if (h > 46) svg += `<line x1="${x + 9}" y1="${y + 18}" x2="${x + 9}" y2="${y + h - 6}" stroke="var(--muted)" stroke-width="1"/><line x1="${x + 5}" y1="${y + h - 6}" x2="${x + 13}" y2="${y + h - 6}" stroke="var(--muted)"/>
+      <g transform="translate(${x + 9},${y + h / 2 + 6}) rotate(-90)"><rect x="-19" y="-6" width="38" height="12" fill="var(--paper)"/><text x="0" y="3.5" font-size="10" text-anchor="middle" fill="var(--ink)">${m2(r.d)}</text></g>`;
+    const fs = w > 90 ? 12 : 10;
+    svg += `<text x="${x + w / 2 + 4}" y="${y + h / 2}" font-size="${fs}" text-anchor="middle" fill="var(--ink)" font-family="Familjen Grotesk, sans-serif" font-weight="700">${esc(w > 60 ? r.name : r.name.slice(0, 6))}</text>
+      ${w > 60 ? `<text x="${x + w / 2 + 4}" y="${y + h / 2 + 15}" font-size="10" text-anchor="middle" fill="var(--muted)">${area(r).toFixed(1)} m²</text>` : ''}`;
+    // furniture footprints
+    for (const it of P.items.filter(i => i.roomId === r.id)) {
+      const fw = (it.rot % 180 ? it.d : it.w) * s, fd = (it.rot % 180 ? it.w : it.d) * s;
+      svg += `<rect x="${x + it.x * s - fw / 2}" y="${y + it.z * s - fd / 2}" width="${fw}" height="${fd}" fill="var(--muted)" fill-opacity=".25" stroke="var(--muted)" stroke-width="1" pointer-events="none"/>`;
+    }
+    svg += `</g>`;
+  }
+  svg += `</svg>`;
+  box.innerHTML = svg.replace(/var\(--([\w-]+)\)/g, (m, n) => tok('--' + n) || '#888');
+  box.querySelectorAll('[data-drag]').forEach(g => {
+    g.addEventListener('pointerdown', e => {
+      const r = roomOf(g.dataset.drag); const sx = e.clientX, sy = e.clientY, ox = r.x, oz = r.z; let moved = false;
+      g.setPointerCapture(e.pointerId);
+      const mv = ev => {
+        const dx = (ev.clientX - sx) / s, dz = (ev.clientY - sy) / s;
+        if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) > 4) moved = true;
+        let nx = Math.round((ox + dx) * 20) / 20, nz = Math.round((oz + dz) * 20) / 20;
+        for (const o of rs) if (o !== r) { // snap to neighbour edges
+          for (const [a, b] of [[nx, o.x + o.w], [nx + r.w, o.x], [nx, o.x], [nx + r.w, o.x + o.w]]) if (Math.abs(a - b) < 0.2) { nx += b - a; break; }
+          for (const [a, b] of [[nz, o.z + o.d], [nz + r.d, o.z], [nz, o.z], [nz + r.d, o.z + o.d]]) if (Math.abs(a - b) < 0.2) { nz += b - a; break; }
+        }
+        r.x = nx; r.z = nz;
+        g.setAttribute('transform', `translate(${(r.x - ox) * s},${(r.z - oz) * s})`);
+      };
+      const up = () => { g.removeEventListener('pointermove', mv); g.removeEventListener('pointerup', up); g.removeEventListener('pointercancel', up); if (moved) { save(); drawPlan(box); } else editRoom(r.id); };
+      g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+    });
+  });
+}
+function editRoom(id) {
+  const r = roomOf(id); const ov = $('#overlay'); let delArmed = false;
+  ov.innerHTML = `<div class="panel" role="dialog" aria-label="Edit room">
+    <h3>Edit ${esc(r.name)}</h3>
+    <label class="f"><span class="label">Name</span><input id="eN" value="${esc(r.name)}"></label>
+    <div class="grid3">
+      <label class="f"><span class="label">Width (m)</span><input id="eW" inputmode="decimal" value="${r.w}"></label>
+      <label class="f"><span class="label">Length (m)</span><input id="eD" inputmode="decimal" value="${r.d}"></label>
+      <label class="f"><span class="label">Height (m)</span><input id="eH" inputmode="decimal" value="${r.h}"></label>
+    </div>
+    <label class="f"><span class="label">Floor</span><select id="eF">${floorsSorted().map(f => `<option value="${f.id}" ${f.id === r.floorId ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}</select></label>
+    <div class="row"><button class="ghost" id="eDel">Delete room</button><span style="flex:1"></span><button id="eCancel">Cancel</button><button class="primary" id="eSave">Save</button></div>
+  </div>`;
+  ov.hidden = false;
+  const close = () => { ov.hidden = true; ov.innerHTML = ''; };
+  $('#eCancel').onclick = close;
+  ov.onclick = e => { if (e.target === ov) close(); };
+  $('#eDel').onclick = e => {
+    if (!delArmed) { delArmed = true; e.target.textContent = 'Tap again to delete'; return; }
+    P.rooms = P.rooms.filter(x => x !== r); P.items = P.items.filter(i => i.roomId !== r.id); save(); close(); renderAll();
+  };
+  $('#eSave').onclick = () => {
+    const n = v => parseFloat(String(v).replace(',', '.'));
+    r.name = $('#eN').value.trim() || r.name;
+    const w = n($('#eW').value), d = n($('#eD').value), h = n($('#eH').value);
+    if (r.poly && ((w > 0.3 && Math.abs(w - r.w) > 0.004) || (d > 0.3 && Math.abs(d - r.d) > 0.004))) delete r.poly;
+    if (w > 0.3) r.w = w; if (d > 0.3) r.d = d; if (h > 1.5) r.h = h;
+    r.floorId = $('#eF').value; save(); close(); renderAll();
+  };
+}
+
+/* ---------- import from Roomtape Scanner (Android) ---------- */
+function runImport(text) {
+  const err = $('#importErr');
+  const show = m => { err.hidden = false; err.textContent = m; };
+  let data;
+  try { data = JSON.parse(String(text).trim()); } catch (e) { show('This is not a Roomtape scan. Save or copy the scan again in Roomtape Scanner and try once more.'); return; }
+  if (!data || data.format !== 'roomtape-scan' || !Array.isArray(data.rooms)) { show('This file is not a Roomtape scan. Use the file that Roomtape Scanner saved.'); return; }
+  const rooms = data.rooms.filter(r => Array.isArray(r.corners) && r.corners.length >= 3 && r.corners.every(p => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])));
+  if (!rooms.length) { show('The scan has no complete rooms. Each room needs at least 3 corners.'); return; }
+  // Turn the whole home so the walls run along the plan's axes: average wall direction folded to 90 degrees.
+  let C = 0, S = 0;
+  for (const r of rooms) r.corners.forEach((a, i) => { const b = r.corners[(i + 1) % r.corners.length]; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); const th = Math.atan2(b[1] - a[1], b[0] - a[0]); C += L * Math.cos(4 * th); S += L * Math.sin(4 * th); });
+  const th0 = Math.atan2(S, C) / 4, ca = Math.cos(-th0), sa = Math.sin(-th0);
+  const rot = p => [p[0] * ca - p[1] * sa, p[0] * sa + p[1] * ca];
+  // Group by walk: rooms from one walk share one coordinate system.
+  const groups = {};
+  for (const r of rooms) (groups[r.session || 'one'] ||= []).push({ ...r, pts: r.corners.map(rot) });
+  const order = Object.values(groups).sort((a, b) => b.length - a.length);
+  if (P.example) P = emptyHome();
+  let offX = P.rooms.length ? Math.max(...P.rooms.map(r => r.x + r.w)) + 1 : 0;
+  const notes = []; let added = 0; const floorsUsed = new Set();
+  order.forEach((g, gi) => {
+    const all = g.flatMap(r => r.pts), minX = Math.min(...all.map(p => p[0])), minZ = Math.min(...all.map(p => p[1])), maxX = Math.max(...all.map(p => p[0]));
+    for (const r of g) {
+      const lv = Number.isFinite(+r.level) ? Math.round(+r.level) : 0;
+      let f = P.floors.find(x => x.level === lv);
+      if (!f) { f = { id: uid(), name: floorName(lv), level: lv }; P.floors.push(f); }
+      floorsUsed.add(f.id);
+      const xs = r.pts.map(p => p[0] - minX), zs = r.pts.map(p => p[1] - minZ);
+      const x0 = Math.min(...xs), z0 = Math.min(...zs);
+      const room = { id: uid(), name: String(r.name || 'Room').slice(0, 40), floorId: f.id,
+        w: +(Math.max(...xs) - x0).toFixed(3), d: +(Math.max(...zs) - z0).toFixed(3),
+        h: r.height >= 1.8 && r.height <= 6 ? +(+r.height).toFixed(2) : 2.5,
+        x: +(offX + x0).toFixed(3), z: +z0.toFixed(3), color: ROOM_COLORS[P.rooms.length % ROOM_COLORS.length],
+        poly: r.pts.map(p => [+(p[0] - minX - x0).toFixed(3), +(p[1] - minZ - z0).toFixed(3)]) };
+      P.rooms.push(room); added++;
+    }
+    if (gi > 0 || offX > 0) notes.push(`${g.length} room${g.length > 1 ? 's were' : ' was'} scanned in a separate walk, so I placed ${g.length > 1 ? 'them' : 'it'} beside the others. Drag ${g.length > 1 ? 'them' : 'it'} into place on the floor plan.`);
+    offX += (maxX - minX) + 1;
+  });
+  save(); renderHeader(); setView('plan');
+  const el = $('#v-plan');
+  const box = document.createElement('div'); box.className = 'status ok';
+  box.textContent = `Imported ${added} room${added > 1 ? 's' : ''} on ${floorsUsed.size} floor${floorsUsed.size > 1 ? 's' : ''} from Roomtape Scanner. ${notes.join(' ')}`;
+  el.insertBefore(box, el.children[1] || null);
+}
+
+/* ================= 3D ================= */
+let T = null, floor3d = null, wallsLow = true, selItem = null, running = false;
+function tok(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function open3D() {
+  renderFloorChips3d();
+  if (!window.THREE) { $('#threeMsg').textContent = 'The 3D engine could not load. Check your connection and reopen this tab.'; return; }
+  if (!P.rooms.length) { $('#threeMsg').hidden = false; $('#threeMsg').textContent = 'Scan a room first to see it in 3D.'; if (T) T.renderer.domElement.style.display = 'none'; return; }
+  $('#threeMsg').hidden = true;
+  if (!T) init3D(); T.renderer.domElement.style.display = 'block';
+  build3D(true); running = true; loop(); renderSel();
+}
+function stop3D() { running = false; }
+function renderFloorChips3d() {
+  const fl = floorsSorted().filter(f => roomsOn(f.id).length);
+  if (!floor3d || (floor3d !== 'all' && !fl.find(f => f.id === floor3d))) floor3d = fl.length ? fl[fl.length - 1].id : 'all';
+  $('#floorChips3d').innerHTML = (fl.length > 1 ? `<button class="chip" data-f="all" aria-pressed="${floor3d === 'all'}">All floors</button>` : '') +
+    fl.slice().reverse().map(f => `<button class="chip" data-f="${f.id}" aria-pressed="${floor3d === f.id}">${esc(f.name)}</button>`).join('');
+  $('#floorChips3d').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { floor3d = b.dataset.f; renderFloorChips3d(); build3D(true); });
+}
+function init3D() {
+  const wrap = $('#threeWrap');
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.shadowMap.enabled = true;
+  wrap.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 300);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.49;
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8890a0, 0.75));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.65); sun.position.set(8, 16, 10); sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024); Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20 });
+  scene.add(sun);
+  const root = new THREE.Group(); scene.add(root);
+  T = { renderer, scene, camera, controls, root, wrap, itemGroups: {} };
+  const resize = () => { const w = wrap.clientWidth, h = wrap.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); };
+  new ResizeObserver(resize).observe(wrap); resize();
+  // furniture dragging
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let drag = null;
+  const setNdc = e => { const r = renderer.domElement.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); };
+  wrap.addEventListener('pointerdown', e => {
+    setNdc(e);
+    const hits = ray.intersectObjects(Object.values(T.itemGroups), true);
+    if (!hits.length) return;
+    let o = hits[0].object; while (o && !o.userData.itemId) o = o.parent;
+    const it = P.items.find(i => i.id === o.userData.itemId); if (!it) return;
+    controls.enabled = false; selItem = it.id; renderSel(); highlight();
+    const room = roomOf(it.roomId), fy = floorOf(room.floorId).level * FLOOR_H * (floor3d === 'all' ? 1 : 0);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -fy), hit = new THREE.Vector3();
+    ray.ray.intersectPlane(plane, hit);
+    drag = { it, plane, off: { x: room.x + it.x - hit.x, z: room.z + it.z - hit.z }, moved: false };
+    e.stopPropagation();
+  }, true);
+  window.addEventListener('pointermove', e => {
+    if (!drag) return; setNdc(e); const hit = new THREE.Vector3();
+    if (!ray.ray.intersectPlane(drag.plane, hit)) return;
+    const it = drag.it; let room = roomOf(it.roomId);
+    const wx = hit.x + drag.off.x, wz = hit.z + drag.off.z;
+    const other = roomsOn(room.floorId).find(r => wx > r.x && wx < r.x + r.w && wz > r.z && wz < r.z + r.d);
+    if (other && other !== room) { it.roomId = other.id; room = other; }
+    it.x = wx - room.x; it.z = wz - room.z; clampItem(it); drag.moved = true;
+    placeItemGroup(it);
+  });
+  window.addEventListener('pointerup', () => { if (drag) { if (drag.moved) save(); drag = null; controls.enabled = true; renderSel(); } });
+}
+function clampItem(it) {
+  const r = roomOf(it.roomId); const fw = (it.rot % 180 ? it.d : it.w) / 2, fd = (it.rot % 180 ? it.w : it.d) / 2;
+  it.x = Math.min(Math.max(it.x, Math.min(fw, r.w / 2)), Math.max(r.w - fw, r.w / 2));
+  it.z = Math.min(Math.max(it.z, Math.min(fd, r.d / 2)), Math.max(r.d - fd, r.d / 2));
+  it.x = Math.round(it.x * 100) / 100; it.z = Math.round(it.z * 100) / 100;
+}
+function labelSprite(text, sub) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128; const x = c.getContext('2d');
+  x.fillStyle = 'rgba(23,34,58,.82)'; x.beginPath(); x.roundRect ? x.roundRect(8, 16, 496, 96, 18) : x.rect(8, 16, 496, 96); x.fill();
+  x.fillStyle = '#fff'; x.textAlign = 'center'; x.font = '600 38px Familjen Grotesk, sans-serif'; x.fillText(text.slice(0, 24), 256, 60);
+  x.fillStyle = '#f2b705'; x.font = '30px IBM Plex Mono, monospace'; x.fillText(sub, 256, 98);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true }));
+  sp.scale.set(2, 0.5, 1); sp.renderOrder = 10; return sp;
+}
+function itemGroup(it) {
+  const g = new THREE.Group(); g.userData.itemId = it.id;
+  const mat = new THREE.MeshStandardMaterial({ color: it.color || '#9aa3b0', roughness: 0.8 });
+  const light = new THREE.MeshStandardMaterial({ color: '#f1efe9', roughness: 0.9 });
+  const dark = new THREE.MeshStandardMaterial({ color: '#2a2f38', roughness: 0.5 });
+  const box = (w, h, d, x, y, z, m = mat) => { const b = new THREE.Mesh(new THREE.BoxGeometry(Math.max(w, .01), Math.max(h, .01), Math.max(d, .01)), m); b.position.set(x, y, z); b.castShadow = true; b.receiveShadow = true; g.add(b); return b; };
+  const { w, d, h } = it;
+  switch (it.type) {
+    case 'bed': { const bh = Math.min(0.32, h * 0.4); box(w, bh, d, 0, bh / 2, 0); box(w * 0.95, 0.2, d * 0.9, 0, bh + 0.1, d * 0.04, light); box(w, h, 0.08, 0, h / 2, -d / 2 + 0.04); box(w * 0.38, 0.12, 0.35, -w * 0.22, bh + 0.26, -d / 2 + 0.3, light); box(w * 0.38, 0.12, 0.35, w * 0.22, bh + 0.26, -d / 2 + 0.3, light); break; }
+    case 'sofa': { box(w, h * 0.5, d, 0, h * 0.25, 0); box(w, h, d * 0.25, 0, h / 2, -d / 2 + d * 0.125); box(0.16, h * 0.7, d, -w / 2 + 0.08, h * 0.35, 0); box(0.16, h * 0.7, d, w / 2 - 0.08, h * 0.35, 0); break; }
+    case 'table': case 'desk': { box(w, 0.04, d, 0, h - 0.02, 0); for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(0.05, h - 0.04, 0.05, sx * (w / 2 - 0.06), (h - 0.04) / 2, sz * (d / 2 - 0.06)); break; }
+    case 'chair': { const sh = Math.min(0.46, h * 0.55); box(w, 0.05, d, 0, sh, 0); box(w, h - sh, 0.04, 0, sh + (h - sh) / 2, -d / 2 + 0.02); for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(0.04, sh, 0.04, sx * (w / 2 - 0.03), sh / 2, sz * (d / 2 - 0.03)); break; }
+    case 'rug': box(w, 0.012, d, 0, 0.006, 0); break;
+    case 'tv': { box(w, h * 0.35, d, 0, h * 0.175, 0); box(w * 0.9, h * 0.6, 0.05, 0, h * 0.35 + h * 0.3, 0, dark); break; }
+    case 'lamp': { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, h * 0.85), dark); p.position.y = h * 0.425; g.add(p); const s = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.3, w * 0.5, h * 0.2, 20), mat); s.position.y = h * 0.9; g.add(s); box(w * 0.6, 0.03, w * 0.6, 0, 0.015, 0, dark); break; }
+    case 'plant': { const p = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.35, w * 0.28, h * 0.3, 16), new THREE.MeshStandardMaterial({ color: '#b5734a' })); p.position.y = h * 0.15; g.add(p); const l = new THREE.Mesh(new THREE.SphereGeometry(w * 0.5, 16, 12), new THREE.MeshStandardMaterial({ color: '#3f7d45' })); l.position.y = h * 0.62; l.scale.y = (h * 0.7) / w; g.add(l); break; }
+    case 'shelf': { box(0.03, h, d, -w / 2, h / 2, 0); box(0.03, h, d, w / 2, h / 2, 0); const n = Math.max(2, Math.round(h / 0.38)); for (let i = 0; i <= n; i++) box(w, 0.025, d, 0, i * (h - 0.02) / n + 0.01, 0); break; }
+    default: { box(w, h, d, 0, h / 2, 0); if (it.type === 'wardrobe' || it.type === 'cabinet') box(0.02, h * 0.9, 0.01, 0, h / 2, d / 2 + 0.005, dark); }
+  }
+  return g;
+}
+function placeItemGroup(it) {
+  const g = T.itemGroups[it.id]; if (!g) return; const r = roomOf(it.roomId);
+  const y = floor3d === 'all' ? floorOf(r.floorId).level * FLOOR_H : 0;
+  g.position.set(r.x + it.x, y + 0.02, r.z + it.z); g.rotation.y = -it.rot * Math.PI / 180;
+}
+function build3D(refit) {
+  if (!T) return;
+  const { root } = T; while (root.children.length) root.remove(root.children[0]);
+  T.itemGroups = {};
+  const fls = floor3d === 'all' ? P.floors : [floorOf(floor3d)].filter(Boolean);
+  const rooms = P.rooms.filter(r => fls.includes(floorOf(r.floorId)));
+  const wallMat = new THREE.MeshStandardMaterial({ color: '#e9ecf1', roughness: 0.95, transparent: !wallsLow, opacity: wallsLow ? 1 : 0.55 });
+  T.scene.background = new THREE.Color(tok('--surface') || '#ffffff');
+  for (const r of rooms) {
+    const y = floor3d === 'all' ? floorOf(r.floorId).level * FLOOR_H : 0;
+    const fm = new THREE.MeshStandardMaterial({ color: new THREE.Color(r.color).lerp(new THREE.Color('#ffffff'), 0.72), roughness: 1 });
+    const wh = wallsLow ? Math.min(1.0, r.h) : r.h, t = 0.1;
+    const poly = r.poly && r.poly.length > 2 ? r.poly : [[0, 0], [r.w, 0], [r.w, r.d], [0, r.d]];
+    const shape = new THREE.Shape(poly.map(p => new THREE.Vector2(p[0], p[1])));
+    fm.side = THREE.DoubleSide;
+    const fl = new THREE.Mesh(new THREE.ShapeGeometry(shape), fm); fl.rotation.x = Math.PI / 2; fl.position.set(r.x, y + 0.01, r.z); fl.receiveShadow = true; root.add(fl);
+    poly.forEach((a, i) => {
+      const b = poly[(i + 1) % poly.length], dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz);
+      if (L < 0.02) return;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(L + t, wh, t), wallMat);
+      m.position.set(r.x + (a[0] + b[0]) / 2, y + wh / 2, r.z + (a[1] + b[1]) / 2); m.rotation.y = -Math.atan2(dz, dx);
+      m.castShadow = true; m.receiveShadow = true; root.add(m);
+    });
+    const lab = labelSprite(r.name, `${m2(r.w)} × ${m2(r.d)} m`); lab.position.set(r.x + r.w / 2, y + wh + 0.55, r.z + r.d / 2); root.add(lab);
+  }
+  for (const it of P.items) {
+    const r = roomOf(it.roomId); if (!r || !rooms.includes(r)) continue;
+    const g = itemGroup(it); T.itemGroups[it.id] = g; root.add(g); placeItemGroup(it);
+  }
+  highlight();
+  if (refit && rooms.length) {
+    const minX = Math.min(...rooms.map(r => r.x)), maxX = Math.max(...rooms.map(r => r.x + r.w));
+    const minZ = Math.min(...rooms.map(r => r.z)), maxZ = Math.max(...rooms.map(r => r.z + r.d));
+    const ys = rooms.map(r => floor3d === 'all' ? floorOf(r.floorId).level * FLOOR_H : 0);
+    const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const span = Math.max(maxX - minX, maxZ - minZ, 3, (Math.max(...ys) - Math.min(...ys)) * 1.2);
+    T.controls.target.set(cx, cy, cz); T.camera.position.set(cx + span * 0.55, cy + span * 1.05, cz + span * 1.15); T.controls.update();
+  }
+}
+function highlight() {
+  if (!T) return;
+  for (const [id, g] of Object.entries(T.itemGroups)) g.traverse(o => { if (o.material && o.material.emissive) o.material.emissive.setHex(id === selItem ? 0x3a3000 : 0x000000); });
+}
+function loop() { if (!running || !T) return; T.controls.update(); T.renderer.render(T.scene, T.camera); requestAnimationFrame(loop); }
+function renderSel() {
+  const p = $('#selPanel'); const it = P.items.find(i => i.id === selItem);
+  if (!it) { p.hidden = true; return; }
+  const r = roomOf(it.roomId); let delArmed = false;
+  p.hidden = false;
+  p.innerHTML = `<div class="sel-card"><span class="swatch" style="background:${esc(it.color)};width:22px;height:22px"></span>
+    <div class="info"><h3>${esc(it.name)}</h3><p class="small muted">${esc(it.shop || 'No shop')} · ${it.price ? eur(it.price) : 'no price'} · <span class="num">${m2(it.w)} × ${m2(it.d)} × ${m2(it.h)} m</span> · in ${esc(r.name)}</p></div>
+    <div class="row"><button id="sRot">Rotate 90°</button><button class="ghost" id="sDel">Remove</button><button class="ghost" id="sClose">Done</button></div></div>`;
+  $('#sRot').onclick = () => { it.rot = (it.rot + 90) % 360; clampItem(it); placeItemGroup(it); save(); };
+  $('#sDel').onclick = e => { if (!delArmed) { delArmed = true; e.target.textContent = 'Tap again to remove'; return; } P.items = P.items.filter(i => i !== it); selItem = null; build3D(false); renderSel(); save(); };
+  $('#sClose').onclick = () => { selItem = null; highlight(); renderSel(); };
+}
+$('#btnWalls').onclick = e => { wallsLow = !wallsLow; e.target.textContent = 'Walls: ' + (wallsLow ? 'low' : 'full height'); build3D(false); };
+$('#btnGoFurnish').onclick = () => setView('furnish');
+
+/* ================= FURNISH ================= */
+let fState = { mode: 'one', status: null, lastBatch: null, shopsRule: '', colors: [], busy: false };
+const COLORS = [['Warm white', '#efe9df'], ['Light oak', '#c9a676'], ['Walnut', '#6b4a32'], ['Black', '#26282c'], ['Grey', '#8c929b'], ['Sage green', '#8fa58a'], ['Terracotta', '#b8674a'], ['Navy', '#2b3a5c'], ['Mustard', '#d0a23a'], ['Blush', '#d8a9a2']];
+const ERR = { not_granted: 'Access to Claude was declined for this page. Allow it in the page permissions to look up furniture.', rate_limited: 'Too many lookups in a short time. Wait a minute and try again.', invalid_json: 'The answer came back in the wrong format. Try again.', cancelled: 'Stopped.' };
+const errMsg = e => ERR[e && e.code] || 'The lookup failed. Check your connection and try again.';
+function roomOpts(sel) { return floorsSorted().map(f => roomsOn(f.id).length ? `<optgroup label="${esc(f.name)}">${roomsOn(f.id).map(r => `<option value="${r.id}" ${r.id === sel ? 'selected' : ''}>${esc(r.name)} · ${m2(r.w)}×${m2(r.d)} m</option>`).join('')}</optgroup>` : '').join(''); }
+
+function renderFurnish() {
+  const el = $('#v-furnish');
+  if (!P.rooms.length) { el.innerHTML = `<div><p class="label">Furnish</p><h2>Scan a room first</h2></div><div class="panel"><p>Furniture needs a room to go in.</p><div class="row"><button class="tape" id="go">Scan a room</button></div></div>`; $('#go').onclick = () => { startWizard(); setView('scan'); }; return; }
+  const noAI = !sampleFn;
+  const tabs = `<div class="chips"><button class="chip" data-mode="one" aria-pressed="${fState.mode === 'one'}">Add a piece I saw</button><button class="chip" data-mode="auto" aria-pressed="${fState.mode === 'auto'}">Furnish it for me</button><button class="chip" data-mode="list" aria-pressed="${fState.mode === 'list'}">Shopping list</button></div>`;
+  let body = '';
+  if (fState.mode === 'one') {
+    body = `<div class="panel">
+      <h3>Which piece did you see?</h3>
+      <p class="small muted">Type the name or the product reference from the label in the shop. Roomtape searches the shops, reads the real price and size and puts it in the room so you can see if it fits.</p>
+      <label class="f"><span class="label">Name or reference</span><input id="q" placeholder="e.g. IKEA MALM bed 160x200 white"></label>
+      <label class="f"><span class="label">Put it in</span><select id="qRoom">${roomOpts(fState.room)}</select></label>
+      <div class="row"><button class="tape" id="find" ${noAI || fState.busy ? 'disabled' : ''}>${fState.busy ? 'Looking it up…' : 'Find and place it'}</button><button class="ghost" id="manual">Enter the size myself</button></div>
+      ${noAI ? `<p class="hint">Product lookup needs Claude, which is not available in this view. You can still enter the size yourself.</p>` : ''}
+      <div id="manualBox" hidden>${manualForm()}</div>
+    </div>`;
+  } else if (fState.mode === 'auto') {
+    body = `<div class="panel">
+      <h3>Let Roomtape choose</h3>
+      <div><p class="label" style="margin-bottom:6px">Rooms to furnish</p><div class="chips" id="aRooms">${P.rooms.map(r => `<button class="chip" data-r="${r.id}" aria-pressed="${(fState.rooms || []).includes(r.id)}">${esc(r.name)}</button>`).join('')}</div></div>
+      <div class="grid2"><label class="f"><span class="label">Total budget (€)</span><input id="aBudget" inputmode="numeric" value="${esc(fState.budget || '')}" placeholder="e.g. 2500"></label>
+      <label class="f"><span class="label">Country of the shops</span><input id="aCountry" value="${esc(P.country || 'Belgium')}"></label></div>
+      <div><p class="label" style="margin-bottom:6px">Colours you like</p><div class="chips" id="aColors">${COLORS.map(([n, h]) => `<button class="chip" data-c="${n}" aria-pressed="${fState.colors.includes(n)}"><span class="swatch" style="background:${h}"></span> ${n}</button>`).join('')}</div></div>
+      <label class="f"><span class="label">Describe what you want</span><textarea id="aDesc" placeholder="e.g. Calm Scandinavian bedroom, lots of storage, a desk for working from home">${esc(fState.desc || '')}</textarea></label>
+      <label class="f"><span class="label">Favourite shops (optional)</span><input id="aPref" value="${esc(fState.pref || '')}" placeholder="e.g. IKEA, JYSK, Casa, Maisons du Monde"></label>
+      <div><p class="label" style="margin-bottom:8px">Before I choose: should everything come from one shop, or can it be spread out?</p>
+      <div class="radios">${[['1', 'Everything from 1 shop'], ['2', 'Up to 2 shops'], ['3', 'Up to 3 shops'], ['any', 'Any number of shops, as long as it stays within budget']].map(([v, l]) => `<label><input type="radio" name="shops" value="${v}" ${fState.shopsRule === v ? 'checked' : ''}> ${l}</label>`).join('')}</div></div>
+      <label class="row small"><input type="checkbox" id="aKeep" style="width:auto" ${fState.keep !== false ? 'checked' : ''}> Keep the furniture already in these rooms</label>
+      <div class="row"><button class="tape" id="auto" ${noAI || fState.busy ? 'disabled' : ''}>${fState.busy ? 'Choosing furniture…' : 'Furnish my rooms'}</button></div>
+      ${noAI ? `<p class="hint">Choosing furniture for you needs Claude, which is not available in this view.</p>` : ''}
+    </div>`;
+  } else {
+    body = shoppingList();
+  }
+  const st = fState.status ? `<div class="status ${fState.status.kind || ''}">${fState.status.html}</div>` : '';
+  el.innerHTML = `<div><p class="label">Furnish</p><h2>Try furniture in your rooms</h2></div>${tabs}${st}${body}
+    ${liveNote()}`;
+  el.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { fState.mode = b.dataset.mode; fState.status = null; renderFurnish(); });
+  if (fState.mode === 'one') {
+    $('#qRoom').onchange = e => fState.room = e.target.value;
+    $('#manual').onclick = () => { $('#manualBox').hidden = !$('#manualBox').hidden; };
+    $('#find').onclick = lookupOne;
+    $('#q').onkeydown = e => { if (e.key === 'Enter' && !$('#find').disabled) lookupOne(); };
+    bindManual();
+  } else if (fState.mode === 'auto') {
+    $('#aRooms').querySelectorAll('[data-r]').forEach(b => b.onclick = () => { const s = new Set(fState.rooms || []); s.has(b.dataset.r) ? s.delete(b.dataset.r) : s.add(b.dataset.r); fState.rooms = [...s]; b.setAttribute('aria-pressed', s.has(b.dataset.r)); });
+    $('#aColors').querySelectorAll('[data-c]').forEach(b => b.onclick = () => { const c = b.dataset.c; fState.colors = fState.colors.includes(c) ? fState.colors.filter(x => x !== c) : [...fState.colors, c]; b.setAttribute('aria-pressed', fState.colors.includes(c)); });
+    $('#auto').onclick = autoFurnish;
+  }
+  bindList();
+}
+function manualForm() {
+  return `<div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+    <div class="grid2"><label class="f"><span class="label">Name</span><input id="mN" placeholder="Bed"></label><label class="f"><span class="label">Shop</span><input id="mS"></label></div>
+    <div class="grid3"><label class="f"><span class="label">Width (cm)</span><input id="mW" inputmode="decimal"></label><label class="f"><span class="label">Depth (cm)</span><input id="mD" inputmode="decimal"></label><label class="f"><span class="label">Height (cm)</span><input id="mH" inputmode="decimal"></label></div>
+    <div class="grid3"><label class="f"><span class="label">Type</span><select id="mT">${TYPES.map(t => `<option>${t}</option>`).join('')}</select></label><label class="f"><span class="label">Price (€)</span><input id="mP" inputmode="decimal"></label><label class="f"><span class="label">Colour</span><input id="mC" type="color" value="#9aa3b0" style="height:44px;padding:4px"></label></div>
+    <div class="row"><button class="primary" id="mAdd">Place it</button></div></div>`;
+}
+function bindManual() {
+  const pf0 = fState.prefill; if (pf0) { $('#mN').value = pf0.name || ''; $('#mS').value = pf0.shop || ''; if (pf0.price) $('#mP').value = pf0.price; }
+  $('#mAdd').onclick = () => {
+    const n = id => parseFloat(String($(id).value).replace(',', '.'));
+    const w = n('#mW') / 100, d = n('#mD') / 100, h = n('#mH') / 100;
+    if (!(w > 0.05 && d > 0.05 && h > 0.005)) { fState.status = { kind: 'err', html: 'Enter width, depth and height in centimetres.' }; renderFurnish(); return; }
+    const pf = fState.prefill && fState.prefill.name === $('#mN').value ? fState.prefill : {};
+    addItem({ ...pf, name: $('#mN').value || 'Furniture', shop: $('#mS').value, price: n('#mP') || 0, w, d, h, type: $('#mT').value, color: $('#mC').value, verified: !!pf.verified && n('#mP') === pf.price }, $('#qRoom').value); fState.prefill = null;
+  };
+}
+function addItem(spec, roomId, pos) {
+  const r = roomOf(roomId);
+  const it = { id: uid(), roomId, name: spec.name, shop: spec.shop || '', price: +spec.price || 0, w: +spec.w, d: +spec.d, h: +spec.h, type: TYPES.includes(spec.type) ? spec.type : 'other', color: /^#[0-9a-f]{6}$/i.test(spec.color || '') ? spec.color : '#9aa3b0', x: pos ? +pos.x : r.w / 2, z: pos ? +pos.z : r.d / 2, rot: pos && [0, 90, 180, 270].includes(+pos.rot) ? +pos.rot : 0, reference: spec.reference || '', url: spec.url || '', verified: !!spec.verified, dimsVerified: !!spec.dimsVerified, checkedAt: spec.checkedAt || null, priceNote: spec.priceNote || '' };
+  clampItem(it); P.items.push(it); save(); renderHeader();
+  const fits = (it.rot % 180 ? it.d : it.w) <= r.w && (it.rot % 180 ? it.w : it.d) <= r.d;
+  if (!pos) {
+    fState.status = { kind: fits ? 'ok' : 'err', html: `${fits ? 'Placed' : 'Placed, but it is bigger than the room'}: <strong>${esc(it.name)}</strong> · <span class="num">${Math.round(it.w * 100)} × ${Math.round(it.d * 100)} × ${Math.round(it.h * 100)} cm</span>${it.price ? ' · ' + eur(it.price) : ''}${it.shop ? ' · ' + esc(it.shop) : ''} in ${esc(r.name)}. <button class="link" id="see">See it in 3D</button>` };
+    selItem = it.id; floor3d = r.floorId; renderFurnish();
+    const s = $('#see'); if (s) s.onclick = () => setView('3d');
+  }
+  return it;
+}
+/* ---------- live price lookup (web search connector) ---------- */
+const SEARCH = 'Parallel Search';
+let mcpNs = null, liveState = 'checking'; // checking | ready | no_connector | no_mcp
+(async () => {
+  try { if (window.claude && window.claude.use) mcpNs = await window.claude.use('mcp'); } catch (e) {}
+  if (!mcpNs) liveState = 'no_mcp';
+  else {
+    try { const lt = await mcpNs.listTools(SEARCH); liveState = lt.servers && lt.servers.length ? 'ready' : 'no_connector'; }
+    catch (e) { liveState = e && e.code === 'server_not_connected' ? 'no_connector' : 'ready'; }
+  }
+  if (view === 'furnish') renderFurnish();
+})();
+const LIVE_ERR = {
+  no_mcp: 'Live prices are not available in this view. Open Roomtape in the Claude app or on claude.ai.',
+  server_not_connected: `Live prices need the ${SEARCH} connector. Add it in claude.ai Settings → Connectors (it is free), then reload this page.`,
+  needs_reauth: `Reconnect ${SEARCH} in claude.ai Settings → Connectors, then try again.`,
+  selection_required: `Choose which ${SEARCH} connector to use when the page asks, then try again.`,
+  not_in_manifest: `Web search was not allowed for this page. Allow ${SEARCH} in the page's Permissions menu, then try again.`,
+  blocked_by_policy: 'Your organization blocks web search for this page.',
+  tools_unavailable: 'This view cannot run web lookups. Open Roomtape in the Claude app or on claude.ai.',
+};
+function liveNote() {
+  if (liveState === 'ready') return `<p class="hint">Prices are looked up live on the shop's own website. Each piece links to the page the price was read from.</p>`;
+  if (liveState === 'no_connector') return `<p class="hint">${esc(LIVE_ERR.server_not_connected)} Until then you only get estimated prices, clearly marked.</p>`;
+  if (liveState === 'no_mcp') return `<p class="hint">${esc(LIVE_ERR.no_mcp)}</p>`;
+  return '';
+}
+const SESSION = Array.from(crypto.getRandomValues(new Uint8Array(16)), x => x.toString(16).padStart(2, '0')).join('');
+const clip = (v, n) => { const s = typeof v === 'string' ? v : JSON.stringify(v); return s.length > n ? s.slice(0, n) + ' …[cut]' : s; };
+async function callSearch(tool, input) {
+  if (!mcpNs) throw { code: 'no_mcp' };
+  if (liveState === 'no_connector') throw { code: 'server_not_connected' };
+  const r = await mcpNs.callTool(SEARCH, tool, { ...input, session_id: SESSION });
+  return r.payload !== undefined ? r.payload : r.content;
+}
+const countrySite = c => /belg/i.test(c) ? 'a Belgian shop website: a .be domain, or a path with /be/ (for example ikea.com/be/nl/...)' : `the shop's own website for ${c}`;
+const EXTRACT_SHAPE = (country) => `Reply with JSON only:
+{"found":true|false,"name":string,"shop":string,"reference":"article number or empty","url":"the product page the price comes from","price":number|null,"price_verified":true|false,"price_note":"promotion or regular price info, max 12 words, or empty","w":number|null,"d":number|null,"h":number|null (outer size in METRES: w = width, d = depth, h = height),"dims_verified":true|false,"type":one of ${JSON.stringify(TYPES)},"color":"#rrggbb","fetch_urls":["up to 3 product page URLs to open next"]}
+Rules:
+- Only count a price from ${countrySite(country)}, for this exact product and variant (size, colour). Ignore other countries' sites, other currencies, second-hand marketplaces (2dehands, marktplaats, ebay, facebook) and comparison listings.
+- price_verified is true only when that price is written in the text below. dims_verified is true only when the measurements are written in the text. Never estimate or fill in from memory.
+- If you only see the product on another country's site of the same shop, put the same URL with the ${country} country path in fetch_urls (for IKEA replace e.g. /lt/en/ with /be/nl/).
+- For a bed use the outer frame size, not only the mattress size. Convert cm to metres. Use the current selling price (with promotion), and mention the regular price in price_note.`;
+async function liveLookup(query, hint) {
+  const country = P.country || 'Belgium';
+  const shopHint = hint ? ' ' + hint : '';
+  const extract = (parts) => sampleFn.json(`A user wants the real product "${query}"${shopHint}, to buy in ${country}.
+${EXTRACT_SHAPE(country)}
+${parts}`, { modelTier: 'quick' });
+  const found = await callSearch('web_search', {
+    objective: `Current price in EUR and the measurements (width, depth, height) of the furniture product "${query}"${shopHint} on the shop's ${country} website.`,
+    search_queries: [`${query} prijs`, `${query} ${country}`, `${query} afmetingen cm`],
+  });
+  let res = await extract(`SEARCH RESULTS:\n${clip(found, 60000)}`);
+  let pages = '';
+  const urls = (res && Array.isArray(res.fetch_urls) ? res.fetch_urls : []).filter(u => /^https?:\/\//.test(u)).slice(0, 3);
+  if (res && !(res.price_verified && res.dims_verified) && urls.length) {
+    pages = clip(await callSearch('web_fetch', { urls, objective: `Current price in EUR and product measurements (width, depth, height) of ${query}` }), 50000);
+    res = await extract(`SEARCH RESULTS:\n${clip(found, 25000)}\nPRODUCT PAGES:\n${pages}`);
+  }
+  if (res && res.price_verified && !res.dims_verified && /^https?:\/\//.test(res.url || '')) {
+    const full = await callSearch('web_fetch', { urls: [res.url], full_content: true, objective: `Product measurements: width, depth, height in cm of ${query}` });
+    const res2 = await extract(`PRODUCT PAGE (full text):\n${clip(full, 70000)}`);
+    if (res2 && res2.dims_verified) res = { ...res, w: res2.w, d: res2.d, h: res2.h, dims_verified: true };
+  }
+  return res;
+}
+function applyLive(target, res) {
+  target.name = res.name || target.name; target.shop = res.shop || target.shop;
+  if (res.reference) target.reference = res.reference;
+  target.url = /^https?:\/\//.test(res.url || '') ? res.url : '';
+  const pv = res.price_verified && res.price > 0 && target.url;
+  if (pv) target.price = +res.price;
+  target.verified = !!pv; target.checkedAt = Date.now(); target.priceNote = pv ? (res.price_note || '') : '';
+  if (res.dims_verified && res.w > 0 && res.d > 0 && res.h > 0) { target.w = +res.w; target.d = +res.d; target.h = +res.h; target.dimsVerified = true; }
+  if (res.type) target.type = res.type; if (res.color) target.color = res.color;
+  return target;
+}
+const fmtTime = t => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+async function lookupOne() {
+  const q = $('#q').value.trim(); const roomId = $('#qRoom').value; fState.room = roomId;
+  if (!q) { fState.status = { kind: 'err', html: 'Type the name or reference of the piece first.' }; renderFurnish(); return; }
+  fState.busy = true; renderFurnish(); $('#q').value = q;
+  const live = liveState === 'ready' || liveState === 'checking';
+  fState.status = { html: live ? `Searching the shops for “${esc(q)}” and reading the price on the product page. This takes up to a minute…` : `Looking up “${esc(q)}”…` }; renderFurnish(); $('#q').value = q;
+  try {
+    let spec;
+    if (live) {
+      const res = await liveLookup(q);
+      if (!res || !res.found) throw { code: 'not_found' };
+      spec = applyLive({ name: q, w: 0, d: 0, h: 0 }, res);
+      if (!(spec.w > 0)) { // price found, size not on page: let the user type it
+        fState.busy = false; fState.prefill = spec;
+        fState.status = { kind: 'err', html: `Found <strong>${esc(spec.name)}</strong>${spec.verified ? ' at ' + eur(spec.price) : ''} (${esc(spec.shop)}), but the page shows no measurements. Enter them below from the label.` };
+        renderFurnish(); $('#manualBox').hidden = false; return;
+      }
+    } else {
+      const res = await sampleFn.json(`The user typed the name or product reference of a furniture piece: "${q}". Shops in ${P.country || 'Belgium'}. Reply with JSON only: {"found":true|false,"name":string,"shop":string,"reference":string,"price":number,"w":number,"d":number,"h":number (metres),"type":one of ${JSON.stringify(TYPES)},"color":"#rrggbb"}`, { modelTier: 'default' });
+      if (!res || !res.found || !(res.w > 0)) throw { code: 'not_found' };
+      spec = { ...res, verified: false };
+    }
+    fState.busy = false;
+    addItem(spec, roomId);
+    fState.status.html += spec.verified
+      ? `<br><span class="small">Live price read on <a href="${esc(spec.url)}" target="_blank" rel="noopener">${esc(hostOf(spec.url))}</a> on ${fmtTime(spec.checkedAt)}.${spec.dimsVerified ? '' : ' Size not confirmed on the page.'}</span>`
+      : `<br><span class="small">Estimated price, not confirmed in the shop.</span>`;
+    renderFurnish();
+  } catch (e) {
+    fState.busy = false;
+    fState.status = { kind: 'err', html: e && e.code === 'not_found' ? `Could not find “${esc(q)}” in a shop. Try the exact name or article number from the label, or enter it yourself.` : esc(LIVE_ERR[e && e.code] || errMsg(e)) };
+    renderFurnish();
+  }
+}
+const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return 'shop'; } };
+async function pool(items, n, fn) { let i = 0; await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) { const k = i++; await fn(items[k], k); } })); }
+
+async function autoFurnish() {
+  fState.budget = $('#aBudget').value; fState.desc = $('#aDesc').value; fState.pref = $('#aPref').value; P.country = $('#aCountry').value.trim() || 'Belgium';
+  fState.keep = $('#aKeep').checked; const rule = (document.querySelector('input[name=shops]:checked') || {}).value; fState.shopsRule = rule || '';
+  const budget = parseFloat(String(fState.budget).replace(/[^\d.,]/g, '').replace(',', '.'));
+  const rooms = (fState.rooms || []).map(roomOf).filter(Boolean);
+  const problem = !rooms.length ? 'Pick at least one room to furnish.' : !(budget > 0) ? 'Enter your total budget in euros.' : !rule ? 'Choose how many shops the furniture may come from.' : null;
+  if (problem) { fState.status = { kind: 'err', html: problem }; renderFurnish(); return; }
+  const kept = fState.keep ? P.items.filter(i => rooms.find(r => r.id === i.roomId)) : [];
+  if (!fState.keep) P.items = P.items.filter(i => !rooms.find(r => r.id === i.roomId));
+  const maxShops = rule === 'any' ? null : +rule;
+  fState.busy = true; fState.status = { html: 'Step 1 of 2: choosing furniture that fits your rooms…' }; renderFurnish();
+  const roomData = rooms.map(r => ({ id: r.id, name: r.name, width_m: r.w, depth_m: r.d, height_m: r.h, already_has: kept.filter(i => i.roomId === r.id).map(i => ({ name: i.name, w: i.w, d: i.d, x: i.x, z: i.z, rot: i.rot })) }));
+  try {
+    const res = await sampleFn.json(`You are an interior designer furnishing rooms in a 3D planner with real products currently sold in ${P.country}. Prices in EUR.
+Rooms (x runs along width from the left wall, z along depth from the back wall, in metres; the door is on the front wall at z = depth): ${JSON.stringify(roomData)}
+Total budget for all NEW items: €${budget}. Aim for about 85% of it, because real prices will be checked online afterwards and are often a bit higher.
+Shops: ${maxShops ? `at most ${maxShops} different shop${maxShops > 1 ? 's' : ''} in total` : 'any number of shops'}.${fState.pref ? ' Preferred shops: ' + fState.pref + '.' : ''}
+Colours: ${fState.colors.join(', ') || 'no preference'}. Wishes: ${fState.desc || 'comfortable, practical'}.
+Pick specific products by their exact shop name (e.g. "IKEA HEMNES 3-drawer chest") that suit each room's use and fit: 0.6 m walkways, keep the door zone free, beds and sofas against walls, no overlaps, every item fully inside its room.
+Reply with JSON only:
+{"items":[{"room":roomId,"name":"exact product name","reference":"article number if known","shop":"shop name","price":number,"w":number,"d":number,"h":number (metres, w along x when rot is 0),"type":one of ${JSON.stringify(TYPES)},"color":"#rrggbb","x":number,"z":number (centre in the room),"rot":0|90|180|270}],"note":"one sentence on the choices"}`, { modelTier: 'complex' });
+    let items = (res && Array.isArray(res.items) ? res.items : []).filter(i => roomOf(i.room) && rooms.includes(roomOf(i.room)) && i.w > 0 && i.d > 0 && i.h > 0);
+    if (!items.length) throw { code: 'not_found' };
+    items.forEach(i => i.verified = false);
+    // Step 2: real prices
+    let liveErr = null;
+    if (liveState === 'ready' || liveState === 'checking') {
+      let done = 0;
+      const prog = () => { fState.status = { html: `Step 2 of 2: checking real prices in the shops · ${done} of ${items.length} done. This can take a few minutes.` }; renderFurnish(); };
+      prog();
+      await pool(items, 3, async it => {
+        if (liveErr) return;
+        try { const r = await liveLookup(`${it.shop} ${it.name} ${it.reference || ''}`.trim(), `shop: ${it.shop}`); if (r && r.found) applyLive(it, r); }
+        catch (e) { if (e && LIVE_ERR[e.code]) liveErr = e.code; }
+        done++; prog();
+      });
+    }
+    fState.busy = false;
+    const notes = [];
+    if (liveErr) notes.push(LIVE_ERR[liveErr] + ' Prices below are estimates.');
+    if (maxShops) {
+      const count = {}; items.forEach(i => count[i.shop] = (count[i.shop] || 0) + 1);
+      const allowed = Object.keys(count).sort((a, b) => count[b] - count[a]).slice(0, maxShops);
+      const before = items.length; items = items.filter(i => allowed.includes(i.shop));
+      if (items.length < before) notes.push(`Left out ${before - items.length} piece(s) from extra shops to keep to ${maxShops} shop${maxShops > 1 ? 's' : ''}.`);
+    }
+    let total = items.reduce((s, i) => s + (+i.price || 0), 0);
+    if (total > budget) {
+      const dropped = []; items.sort((a, b) => a.price - b.price);
+      while (total > budget && items.length) { const x = items.pop(); total -= +x.price || 0; dropped.push(x.name); }
+      notes.push(`With the real prices it went over budget, so I left out: ${dropped.join(', ')}.`);
+    }
+    if (!items.length) { fState.status = { kind: 'err', html: 'Nothing fits this budget at real shop prices. Try a higher budget or fewer rooms.' }; renderFurnish(); return; }
+    fState.lastBatch = items.map(i => addItem(i, i.room, { x: i.x, z: i.z, rot: i.rot }).id);
+    const shops = [...new Set(items.map(i => i.shop))], nv = items.filter(i => i.verified).length;
+    fState.mode = 'list';
+    fState.status = { kind: 'ok', html: `Placed ${items.length} pieces from ${shops.length} shop${shops.length > 1 ? 's' : ''} (${shops.map(esc).join(', ')}) for <strong>${eur(total)}</strong> of your ${eur(budget)}. ${nv} of ${items.length} prices confirmed on the shop's website.${res.note ? '<br>' + esc(res.note) : ''}${notes.length ? '<br><span class="small">' + notes.map(esc).join(' ') + '</span>' : ''} <button class="link" id="see">See it in 3D</button> <button class="link" id="undoBatch">Remove these suggestions</button>` };
+    floor3d = roomOf(items[0].room).floorId; renderFurnish();
+  } catch (e) { fState.busy = false; fState.status = { kind: 'err', html: e && e.code === 'not_found' ? 'No furniture fitted these rooms. Try a higher budget or fewer rooms.' : esc(LIVE_ERR[e && e.code] || errMsg(e)) }; renderFurnish(); }
+}
+function shoppingList() {
+  if (!P.items.length) return `<div class="panel"><p>No furniture yet. Add a piece you saw, or let Roomtape furnish a room for you.</p></div>`;
+  const total = P.items.reduce((s, i) => s + (i.price || 0), 0);
+  const nv = P.items.filter(i => i.verified).length;
+  const budget = parseFloat(fState.budget) || 0;
+  const byShop = {}; P.items.forEach(i => (byShop[i.shop || 'No shop given'] ||= []).push(i));
+  return `<div class="panel">
+    <div class="floorhead"><h3>Shopping list</h3><span class="tapeval">${eur(total)}</span></div>
+    <p class="small muted">${nv} of ${P.items.length} prices confirmed on the shop's website.</p>
+    ${budget ? `<div><div class="budget-bar"><i style="width:${Math.min(100, total / budget * 100)}%"></i></div><p class="small muted" style="margin-top:4px">${eur(total)} of ${eur(budget)} budget · ${total <= budget ? eur(budget - total) + ' left' : eur(total - budget) + ' over'}</p></div>` : ''}
+    ${Object.entries(byShop).map(([shop, its]) => `<div class="shopgroup"><div class="floorhead"><p class="label">${esc(shop)}</p><span class="num small">${eur(its.reduce((s, i) => s + (i.price || 0), 0))}</span></div>
+      ${its.map(i => `<div class="item-line"><div class="n"><div>${esc(i.name)}</div><div class="small muted">${esc((roomOf(i.roomId) || {}).name || '')} · <span class="num">${Math.round(i.w * 100)}×${Math.round(i.d * 100)}×${Math.round(i.h * 100)} cm</span>${i.reference || i.ref ? ' · ref ' + esc(i.reference || i.ref) : ''}</div>
+        <div class="small">${i.verified ? `<span class="pill ok">Live price</span> <a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(hostOf(i.url))}</a> · checked ${fmtTime(i.checkedAt)}${i.priceNote ? ' · ' + esc(i.priceNote) : ''}` : `<span class="pill">Estimate</span> <a href="https://www.google.com/search?q=${encodeURIComponent((i.shop || '') + ' ' + i.name + ' ' + (i.reference || ''))}" target="_blank" rel="noopener">Search the shop</a>`}
+        ${liveState === 'ready' ? ` · <button class="link" data-recheck="${i.id}">Check price now</button>` : ''}</div></div>
+        <span class="num">${i.price ? eur(i.price) : '–'}</span></div>`).join('')}</div>`).join('')}
+  </div>`;
+}
+function bindList() {
+  const s = $('#see'); if (s) s.onclick = () => setView('3d');
+  const u = $('#undoBatch'); if (u) u.onclick = () => { const b = new Set(fState.lastBatch || []); P.items = P.items.filter(i => !b.has(i.id)); fState.lastBatch = null; fState.status = { html: 'Suggestions removed.' }; save(); renderFurnish(); };
+  document.querySelectorAll('[data-recheck]').forEach(b => b.onclick = async () => {
+    const it = P.items.find(x => x.id === b.dataset.recheck); if (!it || fState.busy) return;
+    fState.busy = true; fState.status = { html: `Checking the current price of ${esc(it.name)}…` }; renderFurnish();
+    try {
+      const r = await liveLookup(`${it.shop} ${it.name} ${it.reference || ''}`.trim(), `shop: ${it.shop}`);
+      const old = it.price;
+      if (r && r.found) applyLive(it, r); clampItem(it); save();
+      fState.status = it.verified ? { kind: 'ok', html: `${esc(it.name)}: ${eur(it.price)}${old && Math.round(old) !== Math.round(it.price) ? ` (was ${eur(old)})` : ''}, read on ${esc(hostOf(it.url))}.` } : { kind: 'err', html: `Could not confirm the price of ${esc(it.name)} in the shop.` };
+    } catch (e) { fState.status = { kind: 'err', html: esc(LIVE_ERR[e && e.code] || errMsg(e)) }; }
+    fState.busy = false; renderFurnish();
+  });
+}
+
+renderAll();
+})();
+</script>

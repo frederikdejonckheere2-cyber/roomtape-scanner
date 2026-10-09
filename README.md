@@ -1,4 +1,17 @@
-# Roomtape Scanner for Android
+# Roomtape
+
+## The complete Roomtape project
+
+| Part | Where | What it does |
+|---|---|---|
+| Roomtape web app | `web/roomtape.html`, live at https://claude.ai/artifact/KbKC1icdGbXWY8rZ8df4xr | Measure rooms (photo or typed), floors and positions, floor plans, 3D view with drag-and-drop furniture, real furniture prices via Parallel Search, auto-furnish within a budget and shop limit, import of scans |
+| Roomtape Scanner (Android) | `app/` | Scans rooms with the camera (ARCore) and saves a scan file for the web app |
+| Android app download | https://github.com/frederikdejonckheere2-cyber/roomtape-scanner/releases/download/latest/roomtape-scanner.apk | Built automatically by GitHub Actions on every change |
+| Sample scan | `samples/sample-scan.json` | Try the import in the web app |
+
+The web app only works fully when opened through the claude.ai link (account saving, price lookup and auto-furnish use Claude). The file in `web/` is the source.
+
+## Roomtape Scanner for Android
 
 Measures your home with the phone camera (Google ARCore) and sends the rooms to Roomtape.
 
