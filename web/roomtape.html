@@ -216,6 +216,7 @@ function save() {
 
 let sampleFn = null;
 (async () => {
+  await null;
   try { if (window.claude && window.claude.use) sampleFn = await window.claude.use('sample'); } catch (e) {}
   if (view === 'furnish') renderFurnish();
 })();
@@ -882,6 +883,7 @@ function addItem(spec, roomId, pos) {
 const SEARCH = 'Parallel Search';
 let mcpNs = null, liveState = 'checking'; // checking | ready | no_connector | no_mcp
 (async () => {
+  await null;
   try { if (window.claude && window.claude.use) mcpNs = await window.claude.use('mcp'); } catch (e) {}
   if (!mcpNs) liveState = 'no_mcp';
   else {
